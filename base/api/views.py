@@ -1,6 +1,8 @@
+from django.views.generic.list import ListView
+from django.shortcuts import render
 from rest_framework import status
 from django.contrib.auth.hashers import make_password
-from base.models import Note
+from base.models import Task
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -12,7 +14,10 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 
-from.serializers import NoteSerializer, UserSerailizerWithToken, UserSerializer
+from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer
+
+
+# to-do list
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -48,15 +53,6 @@ def getRoutes(request):
 
     ]
     return Response(routes)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def getNotes(request):
-    user = request.user
-    notes = user.note_set.all()
-    serializer = NoteSerializer(notes, many=True)
-    return Response(serializer.data)
 
 
 @api_view(['PUT'])
@@ -110,3 +106,15 @@ def registerUser(request):
     except:
         message = {'detail': 'User with the same email already exists'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+# to-dolist ko lai
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+
+
+def TaskList(ListView):
+    model = Task
+    # user = request.user
+    # notes = user.note_set.all()
+    # serializer = NoteSerializer(notes, many=True)
+    # return Response(serializer.data)

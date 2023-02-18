@@ -1,13 +1,13 @@
 # from rest_framework.serializers import ModelSerializer
-from base.models import Note
+from base.models import Task
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-class NoteSerializer(serializers.ModelSerializer):
+class TaskSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Note
+        model = Task
         fields = '__all__'
 
 
