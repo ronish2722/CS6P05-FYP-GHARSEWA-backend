@@ -1,3 +1,5 @@
+
+from ..professionals import professionals
 from django.views.generic.list import ListView
 from django.shortcuts import render
 from rest_framework import status
@@ -18,6 +20,41 @@ from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer
 
 
 # to-do list
+
+# professionals
+
+@api_view(['GET'])
+def getRoutes(request):
+    routes = [
+        '/api/professionals/',
+        '/api/professionals/create/',
+
+        '/api/professionals/upload/',
+
+        '/api/professionals/<id>/reviews/',
+
+        '/api/professionals/top/',
+        '/api/professionals/<id>/',
+
+        '/api/professionals/delete/<id>/',
+        '/api/professionals/<update>/<id>/',
+    ]
+    return JsonResponse(routes)
+
+
+@api_view(['GET'])
+def getProfessionals(request):
+    return Response(professionals)
+
+
+@api_view(['GET'])
+def getProfessional(request, pk):
+    professional = None
+    for i in professionals:
+        if i['__id'] == pk:
+            professional = i
+            break
+    return Response(professional)
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -112,8 +149,8 @@ def registerUser(request):
 # @permission_classes([IsAuthenticated])
 
 
-def TaskList(ListView):
-    model = Task
+# def TaskList(ListView):
+#     model = Task
     # user = request.user
     # notes = user.note_set.all()
     # serializer = NoteSerializer(notes, many=True)

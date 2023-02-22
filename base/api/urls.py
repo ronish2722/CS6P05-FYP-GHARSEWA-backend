@@ -1,11 +1,13 @@
-from django.urls import path
-from . import views
-from .views import MyTokenObtainPairView, TaskList
-
 from rest_framework_simplejwt.views import (
 
     TokenRefreshView,
 )
+from django.urls import path
+from . import views
+from .views import MyTokenObtainPairView
+
+# for todo
+
 
 urlpatterns = [
     path('', views.getRoutes),
@@ -22,6 +24,10 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # to-do
-    path('users/todo', views.TaskList, name='tasks')
+    # path('users/todo', views.TaskList, name='tasks')
+
+    # for professionals
+    path('professionals/', views.getProfessionals, name="professionals"),
+    path('professionals/<str:pk>', views.getProfessional, name="professional")
 
 ]
