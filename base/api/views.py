@@ -15,8 +15,8 @@ from django.contrib.auth.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-
-from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer
+from ..models import Professional
+from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer
 
 
 # to-do list
@@ -44,17 +44,16 @@ def getRoutes(request):
 
 @api_view(['GET'])
 def getProfessionals(request):
-    return Response(professionals)
+    professionals = Professional.objects.all()
+    serializer = ProfessionalSerializer(professionals, many=True)
+    return Response(serializer.data)
 
 
 @api_view(['GET'])
 def getProfessional(request, pk):
-    professional = None
-    for i in professionals:
-        if i['__id'] == pk:
-            professional = i
-            break
-    return Response(professional)
+    professional = Professional.objects.get(_id=pk)
+    serializer = ProfessionalSerializer(professional, many=False)
+    return Response(serializer.data)
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

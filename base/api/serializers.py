@@ -2,7 +2,14 @@
 from base.models import Task
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from ..models import Professional
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class ProfessionalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Professional
+        fields = '__all__'
 
 
 class TaskSerializer(serializers.ModelSerializer):
