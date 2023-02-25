@@ -20,6 +20,10 @@ urlpatterns = [
          name="users-profile-update"),
     path('users/', views.getUsers, name="users"),
     path('users/register', views.registerUser, name="users-register"),
+    path('users/delete/<str:pk>', views.deleteUser, name='user-delete'),
+    path('users/<str:pk>', views.getUsersById, name='users'),
+
+    path('users/udpate/<str:pk>', views.updateUser, name='user-update'),
 
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
