@@ -2,7 +2,7 @@
 from base.models import Task
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from ..models import Professional
+from ..models import Professional, UserProfile, Post
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -12,9 +12,10 @@ class ProfessionalSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class TodoItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
+        # fields = ('id', '_id', 'title', 'description', 'complete', 'create')
         fields = '__all__'
 
 
@@ -22,10 +23,12 @@ class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField(read_only=True)
     _id = serializers.SerializerMethodField(read_only=True)
     isAdmin = serializers.SerializerMethodField(read_only=True)
+    isProfessional = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', '_id', 'username', 'email', 'name', 'isAdmin']
+        fields = ['id', '_id', 'username', 'email',
+                  'name', 'isAdmin', 'isProfessional']
 
     def get__id(self, obj):
         return obj.id
@@ -40,14 +43,27 @@ class UserSerializer(serializers.ModelSerializer):
 
         return name
 
+    def get_isProfessional(self, obj):
+        return UserProfile.objects.get(user=obj).isProfessional
+
 
 class UserSerailizerWithToken(UserSerializer):
     token = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', '_id', 'username', 'email', 'name', 'isAdmin', 'token']
+        fields = ['id', '_id', 'username', 'email',
+                  'name', 'isAdmin', 'isProfessional', 'token']
 
     def get_token(self, obj):
         token = RefreshToken.for_user(obj)
         return str(token.access_token)
+
+    # def get_isProfessional(self, obj):
+    #     return UserProfile.objects.get(user=obj).isProfessional
+
+
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = '__all__'
