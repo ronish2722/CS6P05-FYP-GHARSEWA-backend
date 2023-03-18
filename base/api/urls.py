@@ -29,13 +29,16 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # to-do
-    # path('users/todo', views.task_list, name='tasks'),
+    path('todo/', views.getTodo, name='tasks'),
+    path('create-todo/', views.createTodo, name='create-tasks'),
     # path('users/todo', views.TodoItemViewSet.as_view(), name='tasks'),
     # path('users/todo', views.task_list, name='tasks'),
 
     # for professionals
     path('professionals/', views.getProfessionals, name="professionals"),
     path('professionals/<str:pk>', views.getProfessional, name="professional"),
+    path('register-professionals/', views.registerProfessional,
+         name="register-professionals"),
 
 
     path('view-post/', views.getPosts, name='view-post'),

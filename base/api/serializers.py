@@ -12,11 +12,11 @@ class ProfessionalSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TodoItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Task
-        # fields = ('id', '_id', 'title', 'description', 'complete', 'create')
-        fields = '__all__'
+# class TodoItemSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Task
+#         # fields = ('id', '_id', 'title', 'description', 'complete', 'create')
+#         fields = '__all__'
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -66,4 +66,10 @@ class UserSerailizerWithToken(UserSerializer):
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
+        fields = '__all__'
+
+
+class TaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
         fields = '__all__'

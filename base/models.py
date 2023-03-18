@@ -18,7 +18,7 @@ class Professional(models.Model):
     name = models.CharField(max_length=200, null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
     location = models.CharField(max_length=200, null=True, blank=True)
-    category = models.CharField(max_length=200, null=True, blank=True)
+    # category = models.CharField(max_length=200,choices=Categories.choices,default=Categories.ALL)
     description = models.TextField(null=True, blank=True)
     rating = models.DecimalField(
         max_digits=7, decimal_places=2, null=True, blank=True)
@@ -83,3 +83,14 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Categories(models.TextChoices):
+    ALL = 'all'
+    PLUMBER = 'plumber'
+    ELECTRICIAN = 'electrician'
+    CLEANER = 'cleaner'
+    PAINTER = 'painter'
+    ORGANIZER = 'organizer'
+    GARDENER = 'gardener'
+    LAUNDRY = 'laundry'
