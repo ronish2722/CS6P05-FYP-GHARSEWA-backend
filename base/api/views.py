@@ -19,6 +19,7 @@ from rest_framework.permissions import AllowAny
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.db import transaction
 
 from ..models import Professional, Task, Post, UserProfile
 from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer
@@ -298,18 +299,21 @@ def deleteUser(request, pk):
     return Response('User was deleted')
 
 
+@transaction.atomic
 @api_view(['POST'])
 def registerUser(request):
     data = request.data
     try:
-        user = User.objects.create(
-            first_name=data['name'],
-            username=data['email'],
-            email=data['email'],
-            password=make_password(data['password'])
-        )
-        serializer = UserSerailizerWithToken(user, many=False)
-        return Response(serializer.data)
+        with transaction.atomic():
+            user = User.objects.create(
+                first_name=data['name'],
+                username=data['email'],
+                email=data['email'],
+                password=make_password(data['password'])
+            )
+            profile = UserProfile.objects.create(user=user)
+            serializer = UserSerailizerWithToken(user, many=False)
+            return Response(serializer.data)
     except:
         message = {'detail': 'User with the same email already exists'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
