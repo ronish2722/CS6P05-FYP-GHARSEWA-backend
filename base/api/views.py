@@ -21,8 +21,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.db import transaction
 
-from ..models import Professional, Task, Post, UserProfile
-from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer
+from ..models import Professional, Task, Post, UserProfile, Review
+from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer, ReviewSerializer
 # from.serializers import UserSerailizerWithToken, UserSerializer, ProfessionalSerializer
 
 
@@ -345,3 +345,61 @@ def registerUser(request):
     except:
         message = {'detail': 'User with the same email already exists'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+# -----------------------------------------------------------------------------------------------------
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_review(request):
+    data = request.data
+    user = request.user
+
+    try:
+        review = Review.objects.create(
+            professional_id=data['professional_id'],
+            user=user,
+            rating=data['rating'],
+            comment=data['comment']
+        )
+        serializer = ReviewSerializer(review, many=False)
+        return Response(serializer.data)
+    except:
+        message = {'detail': 'Error creating review'}
+        return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_review(request, pk):
+    data = request.data
+    user = request.user
+
+    try:
+        review = Review.objects.get(_id=pk)
+        if review.user != user:
+            return Response({'detail': 'You do not have permission to edit this review.'}, status=status.HTTP_403_FORBIDDEN)
+        review.rating = data['rating']
+        review.comment = data['comment']
+        review.save()
+        serializer = ReviewSerializer(review, many=False)
+        return Response(serializer.data)
+    except Review.DoesNotExist:
+        message = {'detail': 'Review does not exist'}
+        return Response(message, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_review(request, pk):
+    user = request.user
+
+    try:
+        review = Review.objects.get(_id=pk)
+        if review.user != user:
+            return Response({'detail': 'You do not have permission to delete this review.'}, status=status.HTTP_403_FORBIDDEN)
+        review.delete()
+        return Response('Review successfully deleted!')
+    except Review.DoesNotExist:
+        message = {'detail': 'Review does not exist'}
+        return Response(message, status=status.HTTP_404_NOT_FOUND)

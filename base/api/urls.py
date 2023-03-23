@@ -51,5 +51,8 @@ urlpatterns = [
     # path('update-post/<int:post_id>/', views.update_post, name='update-post'),
     # path('delete-post/<int:post_id>/', views.delete_post, name='delete-post')
 
+    path('create-review/', views.create_review, name='create-review'),
+    path('update-review/<str:pk>', views.update_review, name='update-review'),
+    path('delete-review/<str:pk>', views.delete_review, name='delete-review'),
 
 ]

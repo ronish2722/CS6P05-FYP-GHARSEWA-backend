@@ -2,7 +2,7 @@
 from base.models import Task
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from ..models import Professional, UserProfile, Post
+from ..models import Professional, UserProfile, Post, Review
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -72,4 +72,10 @@ class PostSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
+        fields = '__all__'
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
         fields = '__all__'
