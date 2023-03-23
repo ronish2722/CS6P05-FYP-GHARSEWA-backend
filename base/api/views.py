@@ -177,6 +177,34 @@ def createTodo(request):
         message = {'detail': 'error'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['PUT'])
+def updateTodo(request, pk):
+    try:
+        task = Task.objects.get(id=pk)
+        serializer = TaskSerializer(instance=task, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Task.DoesNotExist:
+        message = {'detail': 'Task does not exist'}
+        return Response(message, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['DELETE'])
+def deleteTodo(request, pk):
+    try:
+        task = Task.objects.get(id=pk)
+        if task.user != request.user:
+            return Response({'detail': 'You do not have permission to delete this task.'}, status=status.HTTP_403_FORBIDDEN)
+        task.delete()
+        return Response('Task successfully deleted!')
+    except Task.DoesNotExist:
+        message = {'detail': 'Task does not exist'}
+        return Response(message, status=status.HTTP_404_NOT_FOUND)
+
 # ----------------------------------------------------------------------------------------------------------------------------------------
 
 

@@ -31,6 +31,8 @@ urlpatterns = [
     # to-do
     path('todo/', views.getTodo, name='tasks'),
     path('create-todo/', views.createTodo, name='create-tasks'),
+    path('update-todo/<str:pk>', views.updateTodo, name='update-tasks'),
+    path('delete-todo/<str:pk>', views.deleteTodo, name='delete-tasks'),
     # path('users/todo', views.TodoItemViewSet.as_view(), name='tasks'),
     # path('users/todo', views.task_list, name='tasks'),
 
