@@ -403,3 +403,10 @@ def delete_review(request, pk):
     except Review.DoesNotExist:
         message = {'detail': 'Review does not exist'}
         return Response(message, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def get_reviews_by_professional(request, professional_id):
+    reviews = Review.objects.filter(professional_id=professional_id)
+    serializer = ReviewSerializer(reviews, many=True)
+    return Response(serializer.data)

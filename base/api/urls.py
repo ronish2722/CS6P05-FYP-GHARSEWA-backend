@@ -54,5 +54,7 @@ urlpatterns = [
     path('create-review/', views.create_review, name='create-review'),
     path('update-review/<str:pk>', views.update_review, name='update-review'),
     path('delete-review/<str:pk>', views.delete_review, name='delete-review'),
+    path('review/<int:professional_id>/',
+         views.get_reviews_by_professional, name='view-review'),
 
 ]
