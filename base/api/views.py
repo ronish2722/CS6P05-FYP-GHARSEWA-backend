@@ -20,9 +20,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.db import transaction
+from django.contrib import messages
 
-from ..models import Professional, Task, Post, UserProfile, Review
-from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer, ReviewSerializer
+from datetime import datetime
+
+from ..models import Professional, Task, Post, UserProfile, Review, Book
+from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer, ReviewSerializer, BookSerializer
 # from.serializers import UserSerailizerWithToken, UserSerializer, ProfessionalSerializer
 
 
@@ -410,3 +413,23 @@ def get_reviews_by_professional(request, professional_id):
     reviews = Review.objects.filter(professional_id=professional_id)
     serializer = ReviewSerializer(reviews, many=True)
     return Response(serializer.data)
+
+# ------------------------------------------------------------------------------------------
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def book_professional(request, professional_id):
+    professional = Professional.objects.get(_id=professional_id)
+
+    if request.method == 'POST':
+        # Get the user_id from the request
+        user_id = request.user.id
+        # Create a new Book object with the user_id and professional object
+        book = Book.objects.create(user_id=user_id, professional=professional)
+        # Return a JSON response with the book ID and status code 200
+        return JsonResponse({'book_id': book._id}, status=200)
+
+    # Return a JSON response with an error message and status code 405
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

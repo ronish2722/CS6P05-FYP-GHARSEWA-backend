@@ -43,21 +43,33 @@ class Review(models.Model):
         return str(self.rating)
 
 
+# class Book(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+#     paymentMethod = models.CharField(max_length=200, null=True, blank=True)
+#     totalPrice = models.DecimalField(
+#         max_digits=7, decimal_places=2, null=True, blank=True)
+#     isPaid = models.BooleanField(default=False)
+#     paidAt = models.DateTimeField(auto_now_add=False, null=True, blank=True)
+#     isCompleted = models.BooleanField(default=False)
+#     completedAt = models.DateTimeField(
+#         auto_now_add=False, null=True, blank=True)
+#     createdAt = models.DateTimeField(auto_now_add=True)
+#     _id = models.AutoField(primary_key=True, editable=False)
+
+#     def __str__(self):
+#         return str(self.createdAt)
+
 class Book(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    paymentMethod = models.CharField(max_length=200, null=True, blank=True)
-    totalPrice = models.DecimalField(
-        max_digits=7, decimal_places=2, null=True, blank=True)
-    isPaid = models.BooleanField(default=False)
-    paidAt = models.DateTimeField(auto_now_add=False, null=True, blank=True)
-    isCompleted = models.BooleanField(default=False)
-    completedAt = models.DateTimeField(
-        auto_now_add=False, null=True, blank=True)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    professional = models.ForeignKey(Professional, on_delete=models.CASCADE)
+    booked_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=[(
+        'Pending', 'Pending'), ('Confirmed', 'Confirmed')], default='Pending')
+    # rating = models.IntegerField(null=True, blank=True)
     _id = models.AutoField(primary_key=True, editable=False)
 
     def __str__(self):
-        return str(self.createdAt)
+        return f"{self.user.username} booking for {self.professional.name}"
 
 
 class Task(models.Model):

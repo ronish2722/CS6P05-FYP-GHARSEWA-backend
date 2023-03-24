@@ -57,4 +57,8 @@ urlpatterns = [
     path('review/<int:professional_id>/',
          views.get_reviews_by_professional, name='view-review'),
 
+    path('book-professional/<int:professional_id>/',
+         views.book_professional, name='book_professional'),
+
+
 ]
