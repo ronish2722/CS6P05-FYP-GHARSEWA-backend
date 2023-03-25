@@ -61,6 +61,10 @@ urlpatterns = [
          views.book_professional, name='book_professional'),
     path('view-book/',
          views.get_bookings, name='get_book'),
+    path('accept-booking/<int:booking_id>/',
+         views.accept_booking, name='accept_booking'),
+    path('decline-booking/<int:booking_id>/',
+         views.decline_booking, name='decline_booking'),
 
 
 ]

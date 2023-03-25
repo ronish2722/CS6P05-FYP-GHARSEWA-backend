@@ -435,36 +435,6 @@ def book_professional(request, professional_id):
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# @csrf_exempt
-# def get_book(request, book_id):
-#     try:
-#         # Get the Book object with the provided book_id
-#         book = Book.objects.get(_id=book_id)
-#         # Check if the user is the owner of the book object
-#         if book.user_id == request.user.id:
-#             # Return a JSON response with the book details and status code 200
-#             return JsonResponse({'book_id': book._id, 'professional_id': book.professional._id}, status=200)
-#         else:
-#             # Return a JSON response with an error message and status code 403
-#             return JsonResponse({'error': 'Forbidden'}, status=403)
-#     except Book.DoesNotExist:
-#         # Return a JSON response with an error message and status code 404
-#         return JsonResponse({'error': 'Book not found'}, status=404)
-
-# def professional_bookings(request, professional_id):
-#     professional = Professional.objects.get(_id=professional_id)
-
-#     # Get all the bookings for this professional
-#     bookings = Book.objects.filter(professional=professional)
-
-#     # Serialize the bookings to JSON
-#     serializer = BookSerializer(bookings, many=True)
-
-#     # Return the serialized bookings as a JSON response
-#     return JsonResponse(serializer.data, safe=False)
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_bookings(request):
@@ -476,4 +446,43 @@ def get_bookings(request):
 
     # Serialize the bookings data and return a response
     serializer = BookSerializer(bookings, many=True)
+    bookings_data = serializer.data
+
+    for booking in bookings_data:
+        user_id = booking['user']
+        user = User.objects.get(id=user_id)
+        booking['user'] = user.username
+
     return Response(serializer.data)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def accept_booking(request, booking_id):
+    # Get the booking object
+    booking = Book.objects.get(_id=booking_id)
+
+    # Update the booking status to 'Confirmed'
+    booking.status = 'Confirmed'
+    booking.save()
+
+    # Return a JSON response with the updated booking data and status code 200
+    serializer = BookSerializer(booking)
+    return Response(serializer.data, status=200)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def decline_booking(request, booking_id):
+    # Get the booking object
+    booking = Book.objects.get(_id=booking_id)
+
+    # Update the booking status to 'Confirmed'
+    booking.status = 'Pending'
+    booking.save()
+
+    # Return a JSON response with the updated booking data and status code 200
+    serializer = BookSerializer(booking)
+    return Response(serializer.data, status=200)
