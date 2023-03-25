@@ -59,6 +59,8 @@ urlpatterns = [
 
     path('book-professional/<int:professional_id>/',
          views.book_professional, name='book_professional'),
+    path('view-book/',
+         views.get_bookings, name='get_book'),
 
 
 ]

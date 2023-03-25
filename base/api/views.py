@@ -433,3 +433,47 @@ def book_professional(request, professional_id):
 
     # Return a JSON response with an error message and status code 405
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# @csrf_exempt
+# def get_book(request, book_id):
+#     try:
+#         # Get the Book object with the provided book_id
+#         book = Book.objects.get(_id=book_id)
+#         # Check if the user is the owner of the book object
+#         if book.user_id == request.user.id:
+#             # Return a JSON response with the book details and status code 200
+#             return JsonResponse({'book_id': book._id, 'professional_id': book.professional._id}, status=200)
+#         else:
+#             # Return a JSON response with an error message and status code 403
+#             return JsonResponse({'error': 'Forbidden'}, status=403)
+#     except Book.DoesNotExist:
+#         # Return a JSON response with an error message and status code 404
+#         return JsonResponse({'error': 'Book not found'}, status=404)
+
+# def professional_bookings(request, professional_id):
+#     professional = Professional.objects.get(_id=professional_id)
+
+#     # Get all the bookings for this professional
+#     bookings = Book.objects.filter(professional=professional)
+
+#     # Serialize the bookings to JSON
+#     serializer = BookSerializer(bookings, many=True)
+
+#     # Return the serialized bookings as a JSON response
+#     return JsonResponse(serializer.data, safe=False)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_bookings(request):
+    # Get the professional object
+    professional = Professional.objects.get(user=request.user)
+
+    # Get all the bookings for the professional
+    bookings = Book.objects.filter(professional=professional)
+
+    # Serialize the bookings data and return a response
+    serializer = BookSerializer(bookings, many=True)
+    return Response(serializer.data)
