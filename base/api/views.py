@@ -79,7 +79,8 @@ def registerProfessional(request):
             location=data['location'],
             description=data['description'],
             user=user,
-            image=image
+            image=image,
+            is_approved=False
 
         )
         # Set isProfessional to True in the userProfile object
@@ -486,3 +487,47 @@ def decline_booking(request, booking_id):
     # Return a JSON response with the updated booking data and status code 200
     serializer = BookSerializer(booking)
     return Response(serializer.data, status=200)
+
+# --------------------------------------------------
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAdminUser])
+# def getPendingProfessionalRegistrations(request):
+#     pending_professionals = Professional.objects.filter(is_approved=False)
+#     serializer = ProfessionalSerializer(pending_professionals, many=True)
+#     return Response(serializer.data)
+
+
+# @api_view(['POST'])
+# @permission_classes([IsAdminUser])
+# def processProfessionalRegistration(request):
+#     professional_id = request.data.get('professional_id')
+#     is_approved = request.data.get('is_approved')
+
+#     try:
+#         professional = Professional.objects.get(id=professional_id)
+
+#         # Check if the professional has already been approved or declined
+#         if professional.is_approved:
+#             message = {
+#                 'detail': 'Professional registration has already been processed'}
+#             return Response(message, status=status.HTTP_200_OK)
+
+#         professional.is_approved = is_approved
+#         professional.save()
+
+#         if is_approved:
+#             # Set isProfessional to True in the userProfile object
+#             userProfile = UserProfile.objects.get(user=professional.user)
+#             userProfile.isProfessional = True
+#             userProfile.save()
+
+#             serializer = ProfessionalSerializer(professional, many=False)
+#             return Response(serializer.data, status=status.HTTP_200_OK)
+#         else:
+#             message = {'detail': 'Professional registration declined'}
+#             return Response(message, status=status.HTTP_200_OK)
+#     except Professional.DoesNotExist:
+#         message = {'detail': 'Professional with the given id does not exist'}
+#         return Response(message, status=status.HTTP_400_BAD_REQUEST)
