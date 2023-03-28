@@ -13,6 +13,7 @@ admin.site.register(Book)
 admin.site.register(Task)
 admin.site.register(UserProfile)
 admin.site.register(Post)
+admin.site.register(Categories)
 
 
 class ProfessionalAdmin(admin.ModelAdmin):

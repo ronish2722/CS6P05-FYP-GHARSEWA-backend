@@ -28,6 +28,8 @@ urlpatterns = [
 
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
+    path('categories/', views.categoryList, name="categoryList"),
+
     # to-do
     path('todo/', views.getTodo, name='tasks'),
     path('create-todo/', views.createTodo, name='create-tasks'),
