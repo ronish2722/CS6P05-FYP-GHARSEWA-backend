@@ -7,6 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class ProfessionalSerializer(serializers.ModelSerializer):
+    category_name = serializers.ReadOnlyField(source='category.name')
+
     class Meta:
         model = Professional
         fields = '__all__'

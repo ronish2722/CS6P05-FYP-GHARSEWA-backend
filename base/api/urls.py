@@ -43,6 +43,8 @@ urlpatterns = [
     path('professionals/<str:pk>', views.getProfessional, name="professional"),
     path('register-professionals/', views.registerProfessional,
          name="register-professionals"),
+    path('professionals/category/', views.get_filtered_professionals,
+         name='get_filtered_professionals'),
 
 
     path('view-post/', views.getPosts, name='view-post'),
@@ -53,7 +55,8 @@ urlpatterns = [
     # path('update-post/<int:post_id>/', views.update_post, name='update-post'),
     # path('delete-post/<int:post_id>/', views.delete_post, name='delete-post')
 
-    path('create-review/', views.create_review, name='create-review'),
+    path('create-review/<str:professional_id>',
+         views.create_review, name='create-review'),
     path('update-review/<str:pk>', views.update_review, name='update-review'),
     path('delete-review/<str:pk>', views.delete_review, name='delete-review'),
     path('review/<int:professional_id>/',

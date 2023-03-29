@@ -93,6 +93,8 @@ def registerProfessional(request):
         userProfile.isProfessional = True
         userProfile.save()
         serializer = ProfessionalSerializer(professional, many=False)
+        # Update the category field in the serialized professional object with the category name
+        serializer.data['category'] = category_name
         return Response(serializer.data)
     except:
         message = {'detail': 'User with the same email already exists'}
@@ -360,13 +362,14 @@ def registerUser(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create_review(request):
+def create_review(request, professional_id):
     data = request.data
     user = request.user
 
     try:
+
         review = Review.objects.create(
-            professional_id=data['professional_id'],
+            professional_id=professional_id,
             user=user,
             rating=data['rating'],
             comment=data['comment']
@@ -501,3 +504,16 @@ def categoryList(request):
     categories = Categories.objects.all()
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data)
+
+
+def get_filtered_professionals(request):
+    category = request.GET.get('category')
+    if category:
+        professionals = Professional.objects.filter(category__name=category)
+    else:
+        professionals = Professional.objects.all()
+
+    data = [{'_id': p._id, 'name': p.name,  'location': p.location, 'category': p.category,
+             'description': p.description, 'rating': p.rating, 'numReviews': p.numReviews} for p in professionals]
+
+    return JsonResponse({'data': data})
