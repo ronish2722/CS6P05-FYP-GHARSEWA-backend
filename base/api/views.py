@@ -421,6 +421,19 @@ def delete_review(request, pk):
 def get_reviews_by_professional(request, professional_id):
     reviews = Review.objects.filter(professional_id=professional_id)
     serializer = ReviewSerializer(reviews, many=True)
+    reviews_data = serializer.data
+
+    for review in reviews_data:
+        user_id = review['user']
+        user = User.objects.get(id=user_id)
+        review['user'] = user.username
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def get_reviews(request):
+    reviews = Review.objects.all()
+    serializer = ReviewSerializer(reviews, many=True)
     return Response(serializer.data)
 
 # ------------------------------------------------------------------------------------------

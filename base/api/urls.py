@@ -61,6 +61,8 @@ urlpatterns = [
     path('delete-review/<str:pk>', views.delete_review, name='delete-review'),
     path('review/<int:professional_id>/',
          views.get_reviews_by_professional, name='view-review'),
+    path('review/',
+         views.get_reviews, name='review'),
 
     path('book-professional/<int:professional_id>/',
          views.book_professional, name='book_professional'),
