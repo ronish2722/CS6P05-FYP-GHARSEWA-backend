@@ -54,12 +54,14 @@ urlpatterns = [
     # path('get-posts/', views.get_posts, name='get-posts'),
     # path('update-post/<int:post_id>/', views.update_post, name='update-post'),
     # path('delete-post/<int:post_id>/', views.delete_post, name='delete-post')
+    path('verify-email/<str:uidb64>/<str:token>/',
+         views.verify_email, name='verify-email'),
 
     path('create-review/<str:professional_id>',
          views.create_review, name='create-review'),
     path('update-review/<str:pk>', views.update_review, name='update-review'),
     path('delete-review/<str:pk>', views.delete_review, name='delete-review'),
-    path('review/<int:professional_id>/',
+    path('review/<str:professional_id>/',
          views.get_reviews_by_professional, name='view-review'),
     path('review/',
          views.get_reviews, name='review'),
@@ -72,6 +74,9 @@ urlpatterns = [
          views.accept_booking, name='accept_booking'),
     path('decline-booking/<int:booking_id>/',
          views.decline_booking, name='decline_booking'),
+
+
+
 
 
 ]

@@ -1,4 +1,15 @@
 
+from django.shortcuts import redirect
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str as force_text
+from django.utils.encoding import force_bytes
+from django.conf import settings
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils import timezone
+from django.db.models import Count
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from ..professionals import professionals
@@ -89,9 +100,10 @@ def registerProfessional(request):
 
         )
         # Set isProfessional to True in the userProfile object
-        userProfile = UserProfile.objects.get(user=user)
-        userProfile.isProfessional = True
-        userProfile.save()
+        if request.user.is_staff and professional.is_approved:
+            userProfile = UserProfile.objects.get(user=user)
+            userProfile.isProfessional = True
+            userProfile.save()
         serializer = ProfessionalSerializer(professional, many=False)
         # Update the category field in the serialized professional object with the category name
         serializer.data['category'] = category_name
@@ -131,21 +143,41 @@ def getPosts(request):
 @api_view(['POST'])
 def createPost(request):
     data = request.data
-
     user = request.user
-    serializer = UserSerailizerWithToken(user, many=False)
 
     try:
+        # Get or create the category object with the given name
+        categories_name = data.get('categories')
+        categories, _ = Categories.objects.get_or_create(name=categories_name)
+        categories.save()
+
+        datetime_str = data.get('start_time')
+        start_time = timezone.make_aware(
+            datetime.strptime(datetime_str, '%H:%M'))
+
         post = Post.objects.create(
             title=data['title'],
             body=data['body'],
-            author=user
+            start_time=start_time,
+            locations=data['locations'],
+            categories=categories,
+            author=user,
+
         )
-        serializer = PostSerializer(post, many=False)
+
+        serializer = PostSerializer(post)
+        serializer.data['categories'] = categories_name
         return Response(serializer.data)
-    except:
-        message = {'detail': 'error'}
+
+    except KeyError as e:
+        message = {'detail': f'Missing required field: {e.args[0]}'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError as e:
+        message = {'detail': f'Invalid value for field: {e.args[0]}'}
+        return Response(message, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        message = {'detail': str(e)}
+        return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['DELETE'])
@@ -356,6 +388,62 @@ def registerUser(request):
     except:
         message = {'detail': 'User with the same email already exists'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['POST'])
+# def registerUser(request):
+#     data = request.data
+#     try:
+#         with transaction.atomic():
+#             user = User.objects.create(
+#                 first_name=data['name'],
+#                 username=data['email'],
+#                 email=data['email'],
+#                 password=make_password(data['password']),
+#                 is_active=False  # set the user as inactive initially
+#             )
+#             profile = UserProfile.objects.create(user=user)
+
+#             # generate email verification token
+#             token_generator = default_token_generator
+#             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+#             token = token_generator.make_token(user)
+
+#             # construct email verification link
+#             verify_url = reverse(
+#                 'verify-email', kwargs={'uidb64': uidb64, 'token': token})
+#             verify_url = request.build_absolute_uri(verify_url)
+
+#             # send email verification link to user
+#             subject = 'Verify your email address'
+#             message = f'Hi {user.first_name},\n\nPlease click the following link to verify your email address:\n\n{verify_url}\n\nThanks,\nThe MySite Team'
+#             from_email = settings.DEFAULT_FROM_EMAIL
+#             recipient_list = [user.email]
+#             send_mail(subject, message, from_email, recipient_list)
+
+#             serializer = UserSerailizerWithToken(user, many=False)
+#             return Response(serializer.data)
+#     except:
+#         message = {'detail': 'User with the same email already exists'}
+#         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        # Redirect to success page
+        # Replace with the name of your success page URL
+        return redirect('success-page')
+    else:
+        # Invalid token or user
+        # Redirect to error page
+        # Replace with the name of your error page URL
+        return redirect('error-page')
 
 # -----------------------------------------------------------------------------------------------------
 
@@ -365,6 +453,12 @@ def registerUser(request):
 def create_review(request, professional_id):
     data = request.data
     user = request.user
+    # Check if the user has already reviewed the professional
+    existing_review = Review.objects.filter(
+        professional_id=professional_id, user=user).first()
+    if existing_review:
+        message = {'detail': 'You have already reviewed this professional'}
+        return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
     try:
 
@@ -418,8 +512,14 @@ def delete_review(request, pk):
 
 
 @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
 def get_reviews_by_professional(request, professional_id):
-    reviews = Review.objects.filter(professional_id=professional_id)
+
+    professional = Professional.objects.get(_id=professional_id)
+    # if professional.user != user:
+    #     return Response({'detail': 'You do not have permission to access these reviews.'}, status=status.HTTP_403_FORBIDDEN)
+    reviews = Review.objects.filter(professional=professional)
+
     serializer = ReviewSerializer(reviews, many=True)
     reviews_data = serializer.data
 
@@ -427,6 +527,7 @@ def get_reviews_by_professional(request, professional_id):
         user_id = review['user']
         user = User.objects.get(id=user_id)
         review['user'] = user.username
+
     return Response(serializer.data)
 
 

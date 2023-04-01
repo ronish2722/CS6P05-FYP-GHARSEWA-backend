@@ -66,6 +66,8 @@ class UserSerailizerWithToken(UserSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
+    categories_name = serializers.ReadOnlyField(source='categories.name')
+
     class Meta:
         model = Post
         fields = '__all__'

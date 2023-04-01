@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
 from django.contrib import admin
+from django.utils import timezone
 # Create your models here.
 
 
@@ -36,6 +37,9 @@ class Professional(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
     _id = models.AutoField(primary_key=True, editable=False)
     is_approved = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
 
 
 class Review(models.Model):
@@ -96,10 +100,17 @@ class Task(models.Model):
 
 class Post(models.Model):
     title = models.CharField(max_length=200)
-    body = models.TextField()
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
+    body = models.TextField(default='yoyo')
+    categories = models.ForeignKey(
+        Categories, on_delete=models.SET_NULL, null=True, default=1)
+
+    locations = models.CharField(max_length=200, default='Unknown')
+    start_time = models.DateTimeField(max_length=20, null=True)
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, null=True)
+    created_date = models.DateTimeField(
+        auto_now_add=True, null=True)
+    modified_date = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return self.title
