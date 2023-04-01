@@ -113,6 +113,57 @@ def registerProfessional(request):
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['PUT'])
+def updateProfessional(request):
+    data = request.data
+    user = request.user
+
+    try:
+        professional = Professional.objects.get(user=user)
+
+        # Only allow updates by the owner of the professional page
+        if professional.user != user:
+            return Response({'detail': 'You are not authorized to update this page.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Update the professional object with the new data
+        professional.name = data.get('name', professional.name)
+        professional.location = data.get('location', professional.location)
+        professional.description = data.get(
+            'description', professional.description)
+
+        # Update the category if provided
+        category_name = data.get('category')
+        if category_name:
+            category, _ = Categories.objects.get_or_create(name=category_name)
+            professional.category = category
+
+        # Update the image if provided
+        image = data.get('image')
+        if image:
+            professional.image = image
+
+        professional.save()
+
+        # Serialize the updated professional object and return it in the response
+        serializer = ProfessionalSerializer(professional, many=False)
+        serializer.data['category'] = professional.category.name
+        return Response(serializer.data)
+
+    except Professional.DoesNotExist:
+        return Response({'detail': 'You do not have a professional page yet.'}, status=status.HTTP_404_NOT_FOUND)
+
+    except:
+        return Response({'detail': 'Failed to update professional page.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def getProfessionalProfile(request):
+#     professional = request.
+#     serializer = ProfessionalSerializer(professional, many=False)
+#     return Response(serializer.data)
+
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def deleteProfessional(request, pk):

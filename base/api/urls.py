@@ -45,6 +45,9 @@ urlpatterns = [
          name="register-professionals"),
     path('professionals/category/', views.get_filtered_professionals,
          name='get_filtered_professionals'),
+    path('professionals/update-professional/', views.updateProfessional,
+         name='updateProfessional'),
+
 
 
     path('view-post/', views.getPosts, name='view-post'),
