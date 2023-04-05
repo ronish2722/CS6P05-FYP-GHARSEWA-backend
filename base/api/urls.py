@@ -53,6 +53,10 @@ urlpatterns = [
     path('view-post/', views.getPosts, name='view-post'),
     path('create-post/', views.createPost, name='create-post'),
     path('delete-post/<str:pk>', views.deletePost, name='delete-post'),
+    path('accept-post/<int:post_id>/',
+         views.accept_post, name='accept_post'),
+    path('decline-post/<int:post_id>/',
+         views.decline_post, name='decline_post'),
 
     # path('get-posts/', views.get_posts, name='get-posts'),
     # path('update-post/<int:post_id>/', views.update_post, name='update-post'),
@@ -73,10 +77,16 @@ urlpatterns = [
          views.book_professional, name='book_professional'),
     path('view-book/',
          views.get_bookings, name='get_book'),
+    path('view-book/<str:professional_id>/',
+         views.get_bookings_according_to_pro, name='get_bookings_according_to_pro'),
     path('accept-booking/<int:booking_id>/',
          views.accept_booking, name='accept_booking'),
     path('decline-booking/<int:booking_id>/',
          views.decline_booking, name='decline_booking'),
+    path('cancel-booking/<int:booking_id>/',
+         views.cancel_booking, name='cancel_booking'),
+    path('get-user-bookings/',
+         views.get_user_bookings, name='get_user_bookings'),
 
 
 

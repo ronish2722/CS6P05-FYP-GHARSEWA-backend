@@ -31,6 +31,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.db import transaction
+from rest_framework_simplejwt.views import TokenRefreshView
 from django.contrib import messages
 
 from datetime import datetime
@@ -188,6 +189,7 @@ def deleteProfessional(request, pk):
 def getPosts(request):
     posts = Post.objects.all()
     serializer = PostSerializer(posts, many=True)
+
     return Response(serializer.data)
 
 
@@ -241,6 +243,37 @@ def deletePost(request, pk):
     post.delete()
     return Response('Post was deleted', status=204)
 
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def accept_post(request, post_id):
+    # Get the post object
+    post = Post.objects.get(_id=post_id)
+
+    # Update the post status to 'Confirmed'
+    post.status = 'Confirmed'
+    post.save()
+
+    # Return a JSON response with the updated post data and status code 200
+    serializer = PostSerializer(post)
+    return Response(serializer.data, status=200)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def decline_post(request, post_id):
+    # Get the post object
+    post = Post.objects.get(_id=post_id)
+
+    # Update the post status to 'Confirmed'
+    post.status = 'Pending'
+    post.save()
+
+    # Return a JSON response with the updated post data and status code 200
+    serializer = PostSerializer(post)
+    return Response(serializer.data, status=200)
 # ------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -324,6 +357,10 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+
+class MyTokenRefreshView(TokenRefreshView):
+    pass
 
 
 @api_view(['GET'])
@@ -436,6 +473,7 @@ def registerUser(request):
             profile = UserProfile.objects.create(user=user)
             serializer = UserSerailizerWithToken(user, many=False)
             return Response(serializer.data)
+
     except:
         message = {'detail': 'User with the same email already exists'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
@@ -600,6 +638,12 @@ def book_professional(request, professional_id):
     if request.method == 'POST':
         # Get the user_id from the request
         user_id = request.user.id
+        # Check if the user is the same as the professional
+        if user_id == professional.user_id:
+            return JsonResponse({'error': 'You cannot book yourself.'}, status=400)
+        # Check if the user has already booked the same professional
+        if Book.objects.filter(user_id=user_id, professional=professional).exists():
+            return JsonResponse({'error': 'You have already booked this professional.'}, status=400)
         # Create a new Book object with the user_id and professional object
         book = Book.objects.create(user_id=user_id, professional=professional)
         # Return a JSON response with the book ID and status code 200
@@ -630,6 +674,48 @@ def get_bookings(request):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_bookings(request):
+    # Get the user object
+    user = request.user
+
+    # Get all the bookings for the user
+    bookings = Book.objects.filter(user=user)
+
+    # Serialize the bookings data and return a response
+    serializer = BookSerializer(bookings, many=True)
+    bookings_data = serializer.data
+
+    for booking in bookings_data:
+        professional_id = booking['professional']
+        professional = Professional.objects.get(_id=professional_id)
+        booking['professional'] = professional.user.username
+
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_bookings_according_to_pro(request):
+    # Get the professional object
+    professional = Professional.objects.get(user=request.user)
+
+    # Get all the bookings for the professional
+    bookings = Book.objects.filter(professional=professional)
+
+    # Serialize the bookings data and return a response
+    serializer = BookSerializer(bookings, many=True)
+    bookings_data = serializer.data
+
+    for booking in bookings_data:
+        user_id = booking['user']
+        user = User.objects.get(id=user_id)
+        booking['user'] = user.username
+
+    return Response(bookings_data)
+
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
@@ -644,6 +730,26 @@ def accept_booking(request, booking_id):
     # Return a JSON response with the updated booking data and status code 200
     serializer = BookSerializer(booking)
     return Response(serializer.data, status=200)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def cancel_booking(request, booking_id):
+    booking = Book.objects.get(_id=booking_id)
+    if request.method == 'DELETE':
+        # Get the user_id from the request
+        user_id = request.user.id
+        # Check if the user is the same as the one who made the booking
+        if user_id != booking.user_id:
+            return JsonResponse({'error': 'You do not have permission to cancel this booking.'}, status=400)
+        # Delete the booking object
+        booking.delete()
+        # Return a JSON response with a success message and status code 200
+        return JsonResponse({'message': 'Booking successfully cancelled.'}, status=200)
+
+    # Return a JSON response with an error message and status code 405
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
 @api_view(['PUT'])

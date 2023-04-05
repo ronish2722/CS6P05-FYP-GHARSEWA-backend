@@ -41,6 +41,26 @@ class Professional(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        # Check if the `is_approved` field has changed
+        if self.pk is not None:
+            orig = Professional.objects.get(pk=self.pk)
+            if orig.is_approved != self.is_approved:
+                # Get the user associated with the `Professional` object
+                user = self.user
+                # Get the `UserProfile` object associated with the user
+                user_profile = UserProfile.objects.get(user=user)
+                # Update the `isProfessional` field
+                user_profile.isProfessional = self.is_approved
+                user_profile.save()
+        # Set the `is_approved` field based on the `isProfessional` field
+        user_profile = UserProfile.objects.get(user=self.user)
+        if user_profile.isProfessional:
+            self.is_approved = True
+        else:
+            self.is_approved = False
+        super().save(*args, **kwargs)
+
 
 class Review(models.Model):
     professional = models.ForeignKey(
@@ -111,6 +131,8 @@ class Post(models.Model):
     created_date = models.DateTimeField(
         auto_now_add=True, null=True)
     modified_date = models.DateTimeField(auto_now=True, null=True)
+    status = models.CharField(max_length=20, choices=[(
+        'Pending', 'Pending'), ('Confirmed', 'Confirmed')], default='Pending')
 
     def __str__(self):
         return self.title
