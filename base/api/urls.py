@@ -12,7 +12,6 @@ from .views import MyTokenObtainPairView
 
 urlpatterns = [
     path('', views.getRoutes),
-    # path('notes/', views.TaskList),
 
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
 
@@ -22,8 +21,15 @@ urlpatterns = [
     path('users/', views.getUsers, name="users"),
     path('users/register/', views.registerUser, name="register"),
 
+
+
     path('users/activate/<str:uidb64>/<str:token>/',
          views.activate_account, name='activate_account'),
+
+    path('users/password-reset/', views.password_reset, name='password_reset'),
+    path('users/password-reset-confirm/<str:uidb64>/<str:token>/',
+         views.password_reset_confirm, name='password_reset_confirm'),
+
     path('users/delete/<str:pk>', views.deleteUser, name='user-delete'),
     path('users/<str:pk>', views.getUsersById, name='users'),
 
