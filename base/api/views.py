@@ -1,21 +1,16 @@
 
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str as force_text
-from django.utils.encoding import force_bytes
-from django.conf import settings
-from django.urls import reverse
-from django.utils.http import urlsafe_base64_encode
+
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
+
 from django.utils import timezone
-from django.db.models import Count
+
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import viewsets
-from ..professionals import professionals
-from django.views.generic.list import ListView
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+
+
 from rest_framework import status
 from django.contrib.auth.hashers import make_password
 from base.models import Task
@@ -33,6 +28,13 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.db import transaction
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.contrib import messages
+
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
 
 from datetime import datetime
 
@@ -456,27 +458,55 @@ def deleteUser(request, pk):
     userForDeletion = User.objects.get(id=pk)
     userForDeletion.delete()
     return Response('User was deleted')
+# ---------------------------------------------------------------------------
 
 
-@transaction.atomic
+def send_confirmation_email(request, user):
+    token = default_token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    current_site = get_current_site(request)
+    domain = current_site.domain
+    path = reverse('activate_account', kwargs={'uidb64': uid, 'token': token})
+    activation_link = f'http://{domain}{path}'
+
+    subject = 'Account Activation'
+    message = f'Hi {user.first_name},\n\nPlease click the link below to activate your account:\n\n{activation_link}'
+    from_email = 'ronishshrestha2722@gmail.com'
+    recipient_list = [user.email]
+
+    send_mail(subject, message, from_email,
+              recipient_list, fail_silently=False)
+
+
 @api_view(['POST'])
 def registerUser(request):
     data = request.data
-    try:
-        with transaction.atomic():
-            user = User.objects.create(
-                first_name=data['name'],
-                username=data['email'],
-                email=data['email'],
-                password=make_password(data['password'])
-            )
-            profile = UserProfile.objects.create(user=user)
-            serializer = UserSerailizerWithToken(user, many=False)
-            return Response(serializer.data)
 
-    except:
-        message = {'detail': 'User with the same email already exists'}
+    user, created = User.objects.get_or_create(
+        username=data['email'],
+        email=data['email'],
+        defaults={
+            'first_name': data['name'],
+            'password': make_password(data['password']),
+        }
+    )
+
+    if not created:
+        message = {'detail': 'User with this email already exists.'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+    user.is_active = False  # Set the user's is_active field to False
+    user.save()
+
+    # Send the confirmation email
+    send_confirmation_email(request, user)
+
+    profile = UserProfile.objects.create(user=user)
+
+    serializer = UserSerailizerWithToken(user, many=False)
+    return Response(serializer.data)
+
+# @transaction.atomic
 # @api_view(['POST'])
 # def registerUser(request):
 #     data = request.data
@@ -486,33 +516,31 @@ def registerUser(request):
 #                 first_name=data['name'],
 #                 username=data['email'],
 #                 email=data['email'],
-#                 password=make_password(data['password']),
-#                 is_active=False  # set the user as inactive initially
+#                 password=make_password(data['password'])
 #             )
 #             profile = UserProfile.objects.create(user=user)
-
-#             # generate email verification token
-#             token_generator = default_token_generator
-#             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-#             token = token_generator.make_token(user)
-
-#             # construct email verification link
-#             verify_url = reverse(
-#                 'verify-email', kwargs={'uidb64': uidb64, 'token': token})
-#             verify_url = request.build_absolute_uri(verify_url)
-
-#             # send email verification link to user
-#             subject = 'Verify your email address'
-#             message = f'Hi {user.first_name},\n\nPlease click the following link to verify your email address:\n\n{verify_url}\n\nThanks,\nThe MySite Team'
-#             from_email = settings.DEFAULT_FROM_EMAIL
-#             recipient_list = [user.email]
-#             send_mail(subject, message, from_email, recipient_list)
-
 #             serializer = UserSerailizerWithToken(user, many=False)
 #             return Response(serializer.data)
+
 #     except:
 #         message = {'detail': 'User with the same email already exists'}
 #         return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+
+def activate_account(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        # Replace 'https://your-app-url.com/login' with the actual URL of your app's login page
+        return redirect('http://localhost:3000/login')
+    else:
+        return HttpResponse('Activation link is invalid.')
 
 
 def verify_email(request, uidb64, token):

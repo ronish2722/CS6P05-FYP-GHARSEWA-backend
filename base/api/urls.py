@@ -20,7 +20,10 @@ urlpatterns = [
     path('users/profile/update', views.updateUsersProfile,
          name="users-profile-update"),
     path('users/', views.getUsers, name="users"),
-    path('users/register', views.registerUser, name="users-register"),
+    path('users/register/', views.registerUser, name="register"),
+
+    path('users/activate/<str:uidb64>/<str:token>/',
+         views.activate_account, name='activate_account'),
     path('users/delete/<str:pk>', views.deleteUser, name='user-delete'),
     path('users/<str:pk>', views.getUsersById, name='users'),
 
