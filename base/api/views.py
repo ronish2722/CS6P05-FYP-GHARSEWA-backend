@@ -81,14 +81,15 @@ def getProfessionals(request):
     return Response(serializer.data)
 
 
-# @api_view(['GET'])
-# def getProfessional(request, pk):
-#     professional = Professional.objects.get(_id=pk)
-#     serializer = ProfessionalSerializer(professional, many=False)
-#     return Response(serializer.data)
+@api_view(['GET'])
+def getProfessional(request, pk):
+    professional = Professional.objects.get(_id=pk)
+    serializer = ProfessionalSerializer(professional, many=False)
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
-def getProfessional(request):
+def getProfessionalToken(request):
     user = request.user
 
     try:
@@ -525,7 +526,6 @@ def getUsersById(request, pk):
 
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def updateUser(request, pk):
     user = User.objects.get(id=pk)
 
@@ -734,7 +734,10 @@ def create_review(request, professional_id):
     if existing_review:
         message = {'detail': 'You have already reviewed this professional'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
-
+    professional = Professional.objects.get(_id=professional_id)
+    if professional.user == user:
+        message = {'detail': 'Self-review is not allowed'}
+        return Response(message, status=status.HTTP_400_BAD_REQUEST)
     try:
 
         review = Review.objects.create(

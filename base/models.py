@@ -40,7 +40,7 @@ class Professional(models.Model):
     is_approved = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} - Location: {self.location} - Approved: {self.is_approved}"
 
     def save(self, *args, **kwargs):
         # Check if the `is_approved` field has changed
