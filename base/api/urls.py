@@ -49,7 +49,7 @@ urlpatterns = [
 
     # for professionals
     path('professionals/', views.getProfessionals, name="professionals"),
-    path('professionals/<str:pk>', views.getProfessional, name="professional"),
+    path('get-professionals/', views.getProfessional, name="professional"),
     path('register-professionals/', views.registerProfessional,
          name="register-professionals"),
     path('professionals/category/', views.get_filtered_professionals,

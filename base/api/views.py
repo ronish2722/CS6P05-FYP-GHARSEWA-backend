@@ -81,11 +81,24 @@ def getProfessionals(request):
     return Response(serializer.data)
 
 
+# @api_view(['GET'])
+# def getProfessional(request, pk):
+#     professional = Professional.objects.get(_id=pk)
+#     serializer = ProfessionalSerializer(professional, many=False)
+#     return Response(serializer.data)
+
 @api_view(['GET'])
-def getProfessional(request, pk):
-    professional = Professional.objects.get(_id=pk)
-    serializer = ProfessionalSerializer(professional, many=False)
-    return Response(serializer.data)
+def getProfessional(request):
+    user = request.user
+
+    try:
+        professional = Professional.objects.get(user=user)
+        serializer = ProfessionalSerializer(professional, many=False)
+        return Response(serializer.data)
+    except Professional.DoesNotExist:
+        return Response({'detail': 'You do not have a professional page yet.'}, status=status.HTTP_404_NOT_FOUND)
+    except:
+        return Response({'detail': 'Failed to retrieve professional page.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -110,7 +123,7 @@ def registerProfessional(request):
             message = {'detail': 'Number already taken by another professional'}
             return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
-        image = data.get('image')
+        image = request.FILES.get('image')
         category_name = data.get('category')
 
         # Get or create the category object with the given name
@@ -158,6 +171,8 @@ def updateProfessional(request):
         # Update the professional object with the new data
         professional.name = data.get('name', professional.name)
         professional.location = data.get('location', professional.location)
+        professional.number = data.get('number', professional.number)
+        professional.price = data.get('price', professional.price)
         professional.description = data.get(
             'description', professional.description)
 
