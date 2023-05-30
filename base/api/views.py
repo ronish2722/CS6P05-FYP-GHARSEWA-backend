@@ -1,5 +1,9 @@
 
-from django.http import HttpResponse,HttpResponseBadRequest
+import uuid
+import json
+import jwt
+import requests
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str as force_text
@@ -37,10 +41,13 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 
+from django.conf import settings
+# import requests
+
 from datetime import datetime
 
 from ..models import Professional, Task, Post, UserProfile, Review, Book, Categories
-from.serializers import TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer, ReviewSerializer, BookSerializer, CategorySerializer
+from.serializers import EpaySerializer, TaskSerializer, UserSerailizerWithToken, UserSerializer, ProfessionalSerializer, PostSerializer, ReviewSerializer, BookSerializer, CategorySerializer
 # from.serializers import UserSerailizerWithToken, UserSerializer, ProfessionalSerializer
 
 
@@ -88,6 +95,21 @@ def registerProfessional(request):
 
     serializer = UserSerailizerWithToken(user, many=False)
     try:
+        # Check if the user is already registered as a professional
+        if Professional.objects.filter(user=user).exists():
+            message = {'detail': 'User already registered as a professional'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the name is already used by another professional
+        if Professional.objects.filter(name=data['name']).exists():
+            message = {'detail': 'Name already taken by another professional'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the number is already used by another professional
+        if Professional.objects.filter(number=data['number']).exists():
+            message = {'detail': 'Number already taken by another professional'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
         image = data.get('image')
         category_name = data.get('category')
 
@@ -97,21 +119,25 @@ def registerProfessional(request):
             name=data['name'],
             location=data['location'],
             description=data['description'],
+            number=data['number'],
+            price=data['price'],
             category=category,
             user=user,
             image=image,
             is_approved=False
-
         )
+
         # Set isProfessional to True in the userProfile object
         if request.user.is_staff and professional.is_approved:
             userProfile = UserProfile.objects.get(user=user)
             userProfile.isProfessional = True
             userProfile.save()
+
         serializer = ProfessionalSerializer(professional, many=False)
         # Update the category field in the serialized professional object with the category name
         serializer.data['category'] = category_name
         return Response(serializer.data)
+
     except:
         message = {'detail': 'User with the same email already exists'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
@@ -217,6 +243,7 @@ def createPost(request):
             start_time=start_time,
             locations=data['locations'],
             categories=categories,
+            created_date=data['created_date'],
             author=user,
 
         )
@@ -243,6 +270,13 @@ def deletePost(request, pk):
     if not post:
         return Response({'error': 'Post not found or you are not authorized to delete it.'}, status=404)
 
+    subject = 'Post Declined'
+    message = f'Hi {post.author.first_name},\n\nYour post has been declined.'
+    from_email = 'ronishshrestha2722@gmail.com'
+    recipient_list = [post.author.email]
+
+    send_mail(subject, message, from_email,
+              recipient_list, fail_silently=False)
     post.delete()
     return Response('Post was deleted', status=204)
 
@@ -252,11 +286,28 @@ def deletePost(request, pk):
 @csrf_exempt
 def accept_post(request, post_id):
     # Get the post object
-    post = Post.objects.get(_id=post_id)
+    post = Post.objects.get(id=post_id)
+
+    # Check if the user has already accepted a post
+    accepted_posts = Post.objects.filter(
+        author=request.user, status='Confirmed')
+
+    if accepted_posts.exists():
+        return Response({'detail': 'You have already accepted a post.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    print(post)
 
     # Update the post status to 'Confirmed'
     post.status = 'Confirmed'
     post.save()
+
+    subject = 'Post Accepted'
+    message = f'Hi {post.author.first_name},\n\nYour post has been accepted.'
+    from_email = 'ronishshrestha2722@gmail.com'
+    recipient_list = [post.author.email]
+
+    send_mail(subject, message, from_email,
+              recipient_list, fail_silently=False)
 
     # Return a JSON response with the updated post data and status code 200
     serializer = PostSerializer(post)
@@ -268,10 +319,34 @@ def accept_post(request, post_id):
 @csrf_exempt
 def decline_post(request, post_id):
     # Get the post object
-    post = Post.objects.get(_id=post_id)
+    post = Post.objects.get(id=post_id)
 
     # Update the post status to 'Confirmed'
     post.status = 'Pending'
+    post.save()
+
+    subject = 'Post Declined'
+    message = f'Hi {post.author.first_name},\n\nYour post has been declined.'
+    from_email = 'ronishshrestha2722@gmail.com'
+    recipient_list = [post.author.email]
+
+    send_mail(subject, message, from_email,
+              recipient_list, fail_silently=False)
+
+    # Return a JSON response with the updated post data and status code 200
+    serializer = PostSerializer(post)
+    return Response(serializer.data, status=200)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def complete_post(request, post_id):
+    # Get the post object
+    post = Post.objects.get(id=post_id)
+
+    # Update the post status to 'Completed'
+    post.status = 'Completed'
     post.save()
 
     # Return a JSON response with the updated post data and status code 200
@@ -563,6 +638,7 @@ def verify_email(request, uidb64, token):
         # Replace with the name of your error page URL
         return redirect('error-page')
 
+
 @api_view(['POST'])
 @csrf_exempt
 @authentication_classes([])
@@ -580,7 +656,8 @@ def password_reset(request):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     current_site = get_current_site(request)
     domain = current_site.domain
-    path = reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+    path = reverse('password_reset_confirm', kwargs={
+                   'uidb64': uid, 'token': token})
     reset_link = f'http://{domain}{path}'
     # reset_link = f'http://localhost:3000/password-reset-confirm?uidb64=%7Buid%7D&token=%7Btoken%7D'
 
@@ -589,11 +666,13 @@ def password_reset(request):
     from_email = 'ronishshrestha2722@gmail.com'
     recipient_list = [user.email]
 
-    send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+    send_mail(subject, message, from_email,
+              recipient_list, fail_silently=False)
 
     return Response({'detail': 'Password reset email sent.'})
 
-@api_view(['GET','POST'])
+
+@api_view(['GET', 'POST'])
 @csrf_exempt
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -722,11 +801,13 @@ def get_reviews(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-@csrf_exempt
+# @permission_classes([IsAuthenticated])
+# @csrf_exempt
 def book_professional(request, professional_id):
     professional = Professional.objects.get(_id=professional_id)
+    data = request.data
 
+    print(f"Received data: {data}")
     if request.method == 'POST':
         # Get the user_id from the request
         user_id = request.user.id
@@ -736,8 +817,40 @@ def book_professional(request, professional_id):
         # Check if the user has already booked the same professional
         if Book.objects.filter(user_id=user_id, professional=professional).exists():
             return JsonResponse({'error': 'You have already booked this professional.'}, status=400)
+
         # Create a new Book object with the user_id and professional object
-        book = Book.objects.create(user_id=user_id, professional=professional)
+        # Parse the request body
+
+        datetime_str = data.get('start_time')
+
+        print(f"Received datetime_str: {datetime_str}")
+
+        if datetime_str is None:
+            return JsonResponse({'error': 'Invalid datetime value.'}, status=400)
+
+        try:
+            start_time = timezone.make_aware(
+                datetime.strptime(datetime_str, '%H:%M'))
+        except ValueError:
+            return JsonResponse({'error': 'Invalid datetime format.'}, status=400)
+
+        # start_time = timezone.make_aware(
+        #     datetime.strptime(datetime_str, '%H:%M'))
+        locations = data.get('locations')
+        booked_date = data.get('booked_date')
+
+        book = Book.objects.create(user_id=user_id, professional=professional,
+                                   start_time=start_time,
+                                   locations=locations,
+                                   booked_date=booked_date)
+
+        subject = 'You have been booked'
+        message = f'Hi {professional.user.first_name},\n\nYou have been booked.'
+        from_email = 'ronishshrestha2722@gmail.com'
+        recipient_list = [professional.user.email]
+
+        send_mail(subject, message, from_email,
+                  recipient_list, fail_silently=False)
         # Return a JSON response with the book ID and status code 200
         return JsonResponse({'book_id': book._id}, status=200)
 
@@ -767,7 +880,7 @@ def get_bookings(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def get_user_bookings(request):
     # Get the user object
     user = request.user
@@ -782,20 +895,24 @@ def get_user_bookings(request):
     for booking in bookings_data:
         professional_id = booking['professional']
         professional = Professional.objects.get(_id=professional_id)
-        booking['professional'] = professional.user.username
+        booking['professional'] = professional.name
 
     return Response(serializer.data)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_bookings_according_to_pro(request):
+def get_bookings_according_to_pro(request, professional_id):
     # Get the professional object
-    professional = Professional.objects.get(user=request.user)
+    professional = Professional.objects.get(_id=professional_id)
 
     # Get all the bookings for the professional
-    bookings = Book.objects.filter(professional=professional)
+    bookings = Book.objects.filter(
+        professional=professional, user=request.user)
 
+    # If no bookings found, return a 404 response
+    if not bookings.exists():
+        return Response({'message': 'Bookings not found.'}, status=status.HTTP_404_NOT_FOUND)
     # Serialize the bookings data and return a response
     serializer = BookSerializer(bookings, many=True)
     bookings_data = serializer.data
@@ -819,6 +936,14 @@ def accept_booking(request, booking_id):
     booking.status = 'Confirmed'
     booking.save()
 
+    subject = 'Booking Accepted'
+    message = f'Hi {booking.user.first_name},\n\nYour booking has been accepted.'
+    from_email = 'ronishshrestha2722@gmail.com'
+    recipient_list = [booking.user.email]
+
+    send_mail(subject, message, from_email,
+              recipient_list, fail_silently=False)
+
     # Return a JSON response with the updated booking data and status code 200
     serializer = BookSerializer(booking)
     return Response(serializer.data, status=200)
@@ -837,6 +962,15 @@ def cancel_booking(request, booking_id):
             return JsonResponse({'error': 'You do not have permission to cancel this booking.'}, status=400)
         # Delete the booking object
         booking.delete()
+
+        # Send an email to the user who created the booking
+        subject = 'Booking Cancelled'
+        message = f'Hi {booking.user.first_name},\n\nYour booking has been cancelled.'
+        from_email = 'ronishshrestha2722@gmail.com'
+        recipient_list = [booking.user.email]
+
+        send_mail(subject, message, from_email,
+                  recipient_list, fail_silently=False)
         # Return a JSON response with a success message and status code 200
         return JsonResponse({'message': 'Booking successfully cancelled.'}, status=200)
 
@@ -853,6 +987,22 @@ def decline_booking(request, booking_id):
 
     # Update the booking status to 'Confirmed'
     booking.status = 'Pending'
+    booking.save()
+
+    # Return a JSON response with the updated booking data and status code 200
+    serializer = BookSerializer(booking)
+    return Response(serializer.data, status=200)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def complete_booking(request, booking_id):
+    # Get the booking object
+    booking = Book.objects.get(_id=booking_id)
+
+    # Update the booking status to 'Confirmed'
+    booking.status = 'Completed'
     booking.save()
 
     # Return a JSON response with the updated booking data and status code 200
@@ -880,3 +1030,127 @@ def get_filtered_professionals(request):
              'description': p.description, 'rating': p.rating, 'numReviews': p.numReviews} for p in professionals]
 
     return JsonResponse({'data': data})
+
+
+# @permission_classes([IsAuthenticated])
+# def epay(request):
+
+#     new_id = str(uuid.uuid4())
+#     data = {
+#         'return_url': 'http://127.0.0.1:8000/api/epay',
+#         'website_url': 'http://localhost:3000/',
+#         'amount': 20000,
+#         'purchase_order_id': new_id,
+#         'purchase_order_name': 'premium'
+#     }
+#     headers = {
+#         'Authorization': 'Key 7338a5af1dc44a49966c98a3740f7bcd',
+#         'Access-Control-Allow-Origin': 'http://localhost:3000/',
+#         'Access-Control-Allow-Origin': 'http://127.0.0.1:8000/',
+#     }
+#     response = requests.post(
+#         'https://a.khalti.com/api/v2/epayment/initiate/',
+#         json=data,
+#         headers=headers
+#     )
+#     if response.status_code == 200:
+#         response_json = json.loads(response.content)
+#         return JsonResponse({
+#             'status': 'success',
+#             'message': 'request_successful',
+#             'data': response_json
+#         })
+#     else:
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': 'request_failed'
+#         })
+
+@api_view(['POST', ])
+@permission_classes([IsAuthenticated])
+def epay(request):
+
+    new_id = str(uuid.uuid4())
+    data = {
+        'return_url': 'http://localhost:3000/khalti',
+        'website_url': 'http://localhost:3000/',
+        'amount': 20000,
+        'purchase_order_id': new_id,
+        'purchase_order_name': 'premium'
+    }
+    serializer = EpaySerializer(data=data)
+    if serializer.is_valid():
+        # If the serializer is valid, use the serialized data
+        # to make the request
+        headers = {
+            'Authorization': 'Key 7338a5af1dc44a49966c98a3740f7bcd',
+            'Access-Control-Allow-Origin': 'http://localhost:3000',
+            # add referrer-policy header
+            'Access-Control-Allow-Headers': 'Content-Type, referrer-policy'
+        }
+        # allow requests from any origin
+        headers["Access-Control-Allow-Origin"] = "*"
+        response = requests.post(
+            'https://a.khalti.com/api/v2/epayment/initiate/',
+            json=serializer.validated_data,
+            headers=headers
+        )
+        if response.status_code == 200:
+            response_json = json.loads(response.content)
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'request_successful',
+                'data': response_json
+            })
+    return JsonResponse({
+        'status': 'error',
+        'message': 'request_failed'
+    })
+
+# @api_view(['PUT'])
+# @permission_classes([IsAuthenticated])
+# def updateOrderToPaid(request, pk):
+#     post = Post.objects.get(_id=pk)
+
+#     if request.method == 'PUT':
+#         payment_method = request.data.get('paymentMethod')
+#         payment_result = request.data.get('paymentResult')
+
+#         if not payment_method or not payment_result:
+#             return Response({'error': 'Payment method and result are required'})
+
+#         if payment_method == 'khalti':
+#             headers = {
+#                 'Authorization': f"Key {settings.TEST_SECRET_KEY}"
+#             }
+#             payload = {
+#                 'token': payment_result.get('token'),
+#                 'amount': payment_result.get('amount'),
+#             }
+
+#             try:
+#                 response = requests.post(
+#                     'https://khalti.com/api/v2/payment/verify/', data=payload, headers=headers)
+
+#                 if response.status_code == 200:
+#                     response_json = response.json()
+
+#                     if response_json.get('idx'):
+#                         # post.isPaid = True
+#                         # post.paidAt = datetime.now()
+#                         post.transaction_id = response_json.get('idx')
+#                         post.save()
+#                         return Response({'message': 'Order was paid.'})
+#                     else:
+#                         return Response({'error': 'Payment verification failed'})
+#                 else:
+#                     return Response({'error': 'Khalti API request failed'})
+#             except Exception as e:
+#                 return Response({'error': str(e)})
+
+#         # Add other payment methods here
+#         else:
+#             return Response({'error': 'Invalid payment method'})
+
+#     return Response({'error': 'Invalid request method'})

@@ -96,3 +96,11 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Categories
         fields = '__all__'
+
+
+class EpaySerializer(serializers.Serializer):
+    return_url = serializers.CharField()
+    website_url = serializers.CharField()
+    amount = serializers.IntegerField()
+    purchase_order_id = serializers.CharField()
+    purchase_order_name = serializers.CharField()

@@ -16,7 +16,7 @@ urlpatterns = [
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
 
     path('users/profile', views.getUsersProfile, name="users-profile"),
-    path('users/profile/update', views.updateUsersProfile,
+    path('users/profile/update/', views.updateUsersProfile,
          name="users-profile-update"),
     path('users/', views.getUsers, name="users"),
     path('users/register/', views.registerUser, name="register"),
@@ -66,6 +66,8 @@ urlpatterns = [
          views.accept_post, name='accept_post'),
     path('decline-post/<int:post_id>/',
          views.decline_post, name='decline_post'),
+    path('complete-post/<int:post_id>/',
+         views.complete_post, name='complete_post'),
 
     # path('get-posts/', views.get_posts, name='get-posts'),
     # path('update-post/<int:post_id>/', views.update_post, name='update-post'),
@@ -92,13 +94,15 @@ urlpatterns = [
          views.accept_booking, name='accept_booking'),
     path('decline-booking/<int:booking_id>/',
          views.decline_booking, name='decline_booking'),
+    path('complete-booking/<int:booking_id>/',
+         views.complete_booking, name='complete_booking'),
     path('cancel-booking/<int:booking_id>/',
          views.cancel_booking, name='cancel_booking'),
     path('get-user-bookings/',
          views.get_user_bookings, name='get_user_bookings'),
 
 
-
+    path('epay', views.epay, name='epay'),
 
 
 ]

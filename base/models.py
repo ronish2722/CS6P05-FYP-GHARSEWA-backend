@@ -27,7 +27,8 @@ class Professional(models.Model):
     name = models.CharField(max_length=200, null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
     location = models.CharField(max_length=200, null=True, blank=True)
-
+    number = models.CharField(max_length=200, null=True, blank=True)
+    price = models.CharField(max_length=200, null=True, blank=True)
     category = models.ForeignKey(
         Categories, on_delete=models.SET_NULL, null=True)
     description = models.TextField(null=True, blank=True)
@@ -94,9 +95,13 @@ class Review(models.Model):
 class Book(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     professional = models.ForeignKey(Professional, on_delete=models.CASCADE)
-    booked_date = models.DateTimeField(auto_now_add=True)
+    booked_date = models.DateTimeField(max_length=20, null=True)
+    locations = models.CharField(max_length=200, null=True)
+
+    start_time = models.DateTimeField(max_length=20, null=True)
+
     status = models.CharField(max_length=20, choices=[(
-        'Pending', 'Pending'), ('Confirmed', 'Confirmed')], default='Pending')
+        'Pending', 'Pending'), ('Confirmed', 'Confirmed'), ('Completed', 'Completed')], default='Pending')
 
     _id = models.AutoField(primary_key=True, editable=False)
 
@@ -126,13 +131,14 @@ class Post(models.Model):
 
     locations = models.CharField(max_length=200, default='Unknown')
     start_time = models.DateTimeField(max_length=20, null=True)
+    isPaid = models.BooleanField(default=False)
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, null=True)
     created_date = models.DateTimeField(
-        auto_now_add=True, null=True)
+        max_length=20, null=True)
     modified_date = models.DateTimeField(auto_now=True, null=True)
     status = models.CharField(max_length=20, choices=[(
-        'Pending', 'Pending'), ('Confirmed', 'Confirmed')], default='Pending')
+        'Pending', 'Pending'), ('Confirmed', 'Confirmed'), ('Completed', 'Completed')], default='Pending')
 
     def __str__(self):
         return self.title
